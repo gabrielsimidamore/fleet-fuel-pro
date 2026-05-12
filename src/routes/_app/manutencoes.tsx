@@ -9,7 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { veiculos, catalogo } from "@/lib/mock-data";
+import { useVeiculosList, usePecas } from "@/hooks/use-fleet-data";
+import { insertManutencao } from "@/lib/queries";
+import { useQueryClient } from "@tanstack/react-query";
+import { fleetKeys } from "@/hooks/use-fleet-data";
 
 export const Route = createFileRoute("/_app/manutencoes")({
   component: ManutencoesPage,
@@ -24,24 +27,67 @@ const tipoSugestao: Record<string, { km: number; meses: number }> = {
 
 function ManutencoesPage() {
   const [veiculoId, setVeiculoId] = useState<string>("");
-  const v = veiculos.find((x) => x.id === veiculoId);
   const [tipo, setTipo] = useState<string>("Troca de Óleo");
   const [km, setKm] = useState<string>("");
+  const [mecânico, setMecânico] = useState("");
+  const [oficina, setOficina] = useState("");
+  const [problema, setProblema] = useState("");
+  const [obs, setObs] = useState("");
+  const [usarSugestao, setUsarSugestao] = useState(true);
+  const [saving, setSaving] = useState(false);
   const [pecas, setPecas] = useState<{ cat: string; nome: string; cod: string; qtd: number; preco: number }[]>([
     { cat: "Lubrificantes", nome: "Óleo Motor 15W40 5L", cod: "OL001", qtd: 1, preco: 35.9 },
   ]);
-  const [usarSugestao, setUsarSugestao] = useState(true);
 
+  const { data: veiculos = [], isLoading: loadingV } = useVeiculosList();
+  const { data: catalogo = [] } = usePecas();
+  const queryClient = useQueryClient();
+
+  const v = veiculos.find((x) => x.id === veiculoId);
   const sug = tipoSugestao[tipo];
-  const kmAtual = Number(km || v?.km || 0);
+  const kmAtual = Number(km || v?.current_km || 0);
   const proximoKm = sug ? kmAtual + sug.km : kmAtual;
-  const proximaData = sug ? new Date(Date.now() + sug.meses * 30 * 86400000).toISOString().slice(0, 10) : "";
+  const proximaData = sug
+    ? new Date(Date.now() + sug.meses * 30 * 86400000).toISOString().slice(0, 10)
+    : "";
 
   const total = pecas.reduce((s, p) => s + p.qtd * p.preco, 0);
 
-  const submit = (e: React.FormEvent) => {
+  const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast.success("Manutenção registrada! Cotação gerada automaticamente.");
+    if (!veiculoId) { toast.error("Selecione um veículo."); return; }
+    setSaving(true);
+    try {
+      await insertManutencao({
+        veiculo_id: veiculoId,
+        date: new Date().toISOString().slice(0, 10),
+        type: tipo,
+        km_at_maintenance: kmAtual,
+        mechanic: mecânico || undefined,
+        workshop: oficina || undefined,
+        cost: total,
+        problem_identified: problema || undefined,
+        items_replaced: pecas.map((p) => p.nome),
+        notes: obs || undefined,
+        next_maintenance_date: usarSugestao ? proximaData : undefined,
+        next_maintenance_km: usarSugestao ? proximoKm : undefined,
+        next_maintenance_type: usarSugestao ? tipo : undefined,
+      });
+      await queryClient.invalidateQueries({ queryKey: fleetKeys.veiculos });
+      await queryClient.invalidateQueries({ queryKey: fleetKeys.manutencoes });
+      toast.success("Manutenção registrada com sucesso!");
+      // reset
+      setVeiculoId("");
+      setKm("");
+      setPecas([{ cat: "Lubrificantes", nome: "Óleo Motor 15W40 5L", cod: "OL001", qtd: 1, preco: 35.9 }]);
+      setProblema("");
+      setObs("");
+    } catch (err) {
+      toast.error("Erro ao registrar manutenção.");
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -58,9 +104,11 @@ function ManutencoesPage() {
             <div className="space-y-1.5">
               <Label>Frota / Placa</Label>
               <Select value={veiculoId} onValueChange={setVeiculoId}>
-                <SelectTrigger><SelectValue placeholder="Selecione..." /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder={loadingV ? "Carregando..." : "Selecione..."} /></SelectTrigger>
                 <SelectContent>
-                  {veiculos.map((x) => <SelectItem key={x.id} value={x.id}>{x.frota} — {x.plate}</SelectItem>)}
+                  {veiculos.map((x) => (
+                    <SelectItem key={x.id} value={x.id}>{x.frota_number} — {x.plate}</SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
@@ -84,7 +132,7 @@ function ManutencoesPage() {
             </div>
             <div className="space-y-1.5">
               <Label>KM no momento</Label>
-              <Input type="number" value={km} onChange={(e) => setKm(e.target.value)} placeholder={v?.km.toString() ?? "0"} />
+              <Input type="number" value={km} onChange={(e) => setKm(e.target.value)} placeholder={v?.current_km?.toString() ?? "0"} />
             </div>
             <div className="space-y-1.5">
               <Label>Tipo de serviço</Label>
@@ -97,15 +145,26 @@ function ManutencoesPage() {
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5"><Label>Mecânico</Label><Input /></div>
-            <div className="space-y-1.5"><Label>Oficina</Label><Input /></div>
-            <div className="space-y-1.5"><Label>Custo total (R$)</Label><Input type="number" step="0.01" defaultValue={total.toFixed(2)} /></div>
+            <div className="space-y-1.5">
+              <Label>Mecânico</Label>
+              <Input value={mecânico} onChange={(e) => setMecânico(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Oficina</Label>
+              <Input value={oficina} onChange={(e) => setOficina(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Custo total (R$)</Label>
+              <Input type="number" step="0.01" value={total.toFixed(2)} readOnly />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader><CardTitle className="text-base">3. Problema identificado</CardTitle></CardHeader>
-          <CardContent><Textarea rows={3} placeholder="Descreva o problema..." /></CardContent>
+          <CardContent>
+            <Textarea rows={3} placeholder="Descreva o problema..." value={problema} onChange={(e) => setProblema(e.target.value)} />
+          </CardContent>
         </Card>
 
         <Card>
@@ -118,11 +177,33 @@ function ManutencoesPage() {
           <CardContent className="space-y-2">
             {pecas.map((p, i) => (
               <div key={i} className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-2"><Label className="text-xs">Categoria</Label><Input value={p.cat} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cat: e.target.value } : x))} /></div>
-                <div className="col-span-4"><Label className="text-xs">Nome</Label><Input value={p.nome} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, nome: e.target.value } : x))} /></div>
-                <div className="col-span-2"><Label className="text-xs">Código</Label><Input value={p.cod} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cod: e.target.value } : x))} /></div>
-                <div className="col-span-1"><Label className="text-xs">Qtd</Label><Input type="number" value={p.qtd} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, qtd: Number(e.target.value) } : x))} /></div>
-                <div className="col-span-2"><Label className="text-xs">Preço un.</Label><Input type="number" step="0.01" value={p.preco} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, preco: Number(e.target.value) } : x))} /></div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Categoria</Label>
+                  <Input value={p.cat} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cat: e.target.value } : x))} />
+                </div>
+                <div className="col-span-4">
+                  <Label className="text-xs">Nome</Label>
+                  <Input
+                    value={p.nome}
+                    onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, nome: e.target.value } : x))}
+                    list={`pecas-list-${i}`}
+                  />
+                  <datalist id={`pecas-list-${i}`}>
+                    {catalogo.map((c) => <option key={c.id} value={c.name} />)}
+                  </datalist>
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Código</Label>
+                  <Input value={p.cod} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cod: e.target.value } : x))} />
+                </div>
+                <div className="col-span-1">
+                  <Label className="text-xs">Qtd</Label>
+                  <Input type="number" value={p.qtd} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, qtd: Number(e.target.value) } : x))} />
+                </div>
+                <div className="col-span-2">
+                  <Label className="text-xs">Preço un.</Label>
+                  <Input type="number" step="0.01" value={p.preco} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, preco: Number(e.target.value) } : x))} />
+                </div>
                 <div className="col-span-1">
                   <Button type="button" variant="ghost" size="icon" onClick={() => setPecas(pecas.filter((_, j) => j !== i))}>
                     <Trash2 className="h-4 w-4 text-destructive" />
@@ -151,17 +232,19 @@ function ManutencoesPage() {
 
         <Card>
           <CardHeader><CardTitle className="text-base">6. Observações</CardTitle></CardHeader>
-          <CardContent><Textarea rows={2} /></CardContent>
+          <CardContent>
+            <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+          </CardContent>
         </Card>
 
         <div className="flex justify-end gap-2">
           <Button type="button" variant="outline">Cancelar</Button>
-          <Button type="submit">Salvar Manutenção</Button>
+          <Button type="submit" disabled={saving}>{saving ? "Salvando..." : "Salvar Manutenção"}</Button>
         </div>
 
         <Card className="bg-muted/40">
           <CardContent className="p-4 text-xs text-muted-foreground">
-            Catálogo disponível para autocomplete: {catalogo.length} peças cadastradas.
+            Catálogo disponível: {catalogo.length} peças cadastradas no banco de dados.
           </CardContent>
         </Card>
       </form>
