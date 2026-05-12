@@ -20,6 +20,12 @@ import { Route as AppDashboardRouteImport } from './routes/_app/dashboard'
 import { Route as AppCotacoesRouteImport } from './routes/_app/cotacoes'
 import { Route as AppChecklistRouteImport } from './routes/_app/checklist'
 import { Route as AppCalendarioRouteImport } from './routes/_app/calendario'
+import { Route as AppAdminRelatoriosRouteImport } from './routes/_app/admin/relatorios'
+import { Route as AppAdminPromocoesRouteImport } from './routes/_app/admin/promocoes'
+import { Route as AppAdminPedidosRouteImport } from './routes/_app/admin/pedidos'
+import { Route as AppAdminDashboardRouteImport } from './routes/_app/admin/dashboard'
+import { Route as AppAdminClientesRouteImport } from './routes/_app/admin/clientes'
+import { Route as AppAdminCatalogoRouteImport } from './routes/_app/admin/catalogo'
 
 const LoginRoute = LoginRouteImport.update({
   id: '/login',
@@ -75,6 +81,36 @@ const AppCalendarioRoute = AppCalendarioRouteImport.update({
   path: '/calendario',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminRelatoriosRoute = AppAdminRelatoriosRouteImport.update({
+  id: '/admin/relatorios',
+  path: '/admin/relatorios',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminPromocoesRoute = AppAdminPromocoesRouteImport.update({
+  id: '/admin/promocoes',
+  path: '/admin/promocoes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminPedidosRoute = AppAdminPedidosRouteImport.update({
+  id: '/admin/pedidos',
+  path: '/admin/pedidos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminDashboardRoute = AppAdminDashboardRouteImport.update({
+  id: '/admin/dashboard',
+  path: '/admin/dashboard',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminClientesRoute = AppAdminClientesRouteImport.update({
+  id: '/admin/clientes',
+  path: '/admin/clientes',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppAdminCatalogoRoute = AppAdminCatalogoRouteImport.update({
+  id: '/admin/catalogo',
+  path: '/admin/catalogo',
+  getParentRoute: () => AppRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -87,6 +123,12 @@ export interface FileRoutesByFullPath {
   '/manutencoes': typeof AppManutencoesRoute
   '/pedidos': typeof AppPedidosRoute
   '/promocoes': typeof AppPromocoesRoute
+  '/admin/catalogo': typeof AppAdminCatalogoRoute
+  '/admin/clientes': typeof AppAdminClientesRoute
+  '/admin/dashboard': typeof AppAdminDashboardRoute
+  '/admin/pedidos': typeof AppAdminPedidosRoute
+  '/admin/promocoes': typeof AppAdminPromocoesRoute
+  '/admin/relatorios': typeof AppAdminRelatoriosRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -99,6 +141,12 @@ export interface FileRoutesByTo {
   '/manutencoes': typeof AppManutencoesRoute
   '/pedidos': typeof AppPedidosRoute
   '/promocoes': typeof AppPromocoesRoute
+  '/admin/catalogo': typeof AppAdminCatalogoRoute
+  '/admin/clientes': typeof AppAdminClientesRoute
+  '/admin/dashboard': typeof AppAdminDashboardRoute
+  '/admin/pedidos': typeof AppAdminPedidosRoute
+  '/admin/promocoes': typeof AppAdminPromocoesRoute
+  '/admin/relatorios': typeof AppAdminRelatoriosRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -113,6 +161,12 @@ export interface FileRoutesById {
   '/_app/manutencoes': typeof AppManutencoesRoute
   '/_app/pedidos': typeof AppPedidosRoute
   '/_app/promocoes': typeof AppPromocoesRoute
+  '/_app/admin/catalogo': typeof AppAdminCatalogoRoute
+  '/_app/admin/clientes': typeof AppAdminClientesRoute
+  '/_app/admin/dashboard': typeof AppAdminDashboardRoute
+  '/_app/admin/pedidos': typeof AppAdminPedidosRoute
+  '/_app/admin/promocoes': typeof AppAdminPromocoesRoute
+  '/_app/admin/relatorios': typeof AppAdminRelatoriosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -127,6 +181,12 @@ export interface FileRouteTypes {
     | '/manutencoes'
     | '/pedidos'
     | '/promocoes'
+    | '/admin/catalogo'
+    | '/admin/clientes'
+    | '/admin/dashboard'
+    | '/admin/pedidos'
+    | '/admin/promocoes'
+    | '/admin/relatorios'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -139,6 +199,12 @@ export interface FileRouteTypes {
     | '/manutencoes'
     | '/pedidos'
     | '/promocoes'
+    | '/admin/catalogo'
+    | '/admin/clientes'
+    | '/admin/dashboard'
+    | '/admin/pedidos'
+    | '/admin/promocoes'
+    | '/admin/relatorios'
   id:
     | '__root__'
     | '/'
@@ -152,6 +218,12 @@ export interface FileRouteTypes {
     | '/_app/manutencoes'
     | '/_app/pedidos'
     | '/_app/promocoes'
+    | '/_app/admin/catalogo'
+    | '/_app/admin/clientes'
+    | '/_app/admin/dashboard'
+    | '/_app/admin/pedidos'
+    | '/_app/admin/promocoes'
+    | '/_app/admin/relatorios'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -239,6 +311,48 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppCalendarioRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/relatorios': {
+      id: '/_app/admin/relatorios'
+      path: '/admin/relatorios'
+      fullPath: '/admin/relatorios'
+      preLoaderRoute: typeof AppAdminRelatoriosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/promocoes': {
+      id: '/_app/admin/promocoes'
+      path: '/admin/promocoes'
+      fullPath: '/admin/promocoes'
+      preLoaderRoute: typeof AppAdminPromocoesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/pedidos': {
+      id: '/_app/admin/pedidos'
+      path: '/admin/pedidos'
+      fullPath: '/admin/pedidos'
+      preLoaderRoute: typeof AppAdminPedidosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/dashboard': {
+      id: '/_app/admin/dashboard'
+      path: '/admin/dashboard'
+      fullPath: '/admin/dashboard'
+      preLoaderRoute: typeof AppAdminDashboardRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/clientes': {
+      id: '/_app/admin/clientes'
+      path: '/admin/clientes'
+      fullPath: '/admin/clientes'
+      preLoaderRoute: typeof AppAdminClientesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/admin/catalogo': {
+      id: '/_app/admin/catalogo'
+      path: '/admin/catalogo'
+      fullPath: '/admin/catalogo'
+      preLoaderRoute: typeof AppAdminCatalogoRouteImport
+      parentRoute: typeof AppRoute
+    }
   }
 }
 
@@ -251,6 +365,12 @@ interface AppRouteChildren {
   AppManutencoesRoute: typeof AppManutencoesRoute
   AppPedidosRoute: typeof AppPedidosRoute
   AppPromocoesRoute: typeof AppPromocoesRoute
+  AppAdminCatalogoRoute: typeof AppAdminCatalogoRoute
+  AppAdminClientesRoute: typeof AppAdminClientesRoute
+  AppAdminDashboardRoute: typeof AppAdminDashboardRoute
+  AppAdminPedidosRoute: typeof AppAdminPedidosRoute
+  AppAdminPromocoesRoute: typeof AppAdminPromocoesRoute
+  AppAdminRelatoriosRoute: typeof AppAdminRelatoriosRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -262,6 +382,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppManutencoesRoute: AppManutencoesRoute,
   AppPedidosRoute: AppPedidosRoute,
   AppPromocoesRoute: AppPromocoesRoute,
+  AppAdminCatalogoRoute: AppAdminCatalogoRoute,
+  AppAdminClientesRoute: AppAdminClientesRoute,
+  AppAdminDashboardRoute: AppAdminDashboardRoute,
+  AppAdminPedidosRoute: AppAdminPedidosRoute,
+  AppAdminPromocoesRoute: AppAdminPromocoesRoute,
+  AppAdminRelatoriosRoute: AppAdminRelatoriosRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)
