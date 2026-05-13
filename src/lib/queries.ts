@@ -86,6 +86,7 @@ export interface DBCotacao {
 export interface DBPedido {
   id: string;
   cotacao_id: string | null;
+  manutencao_id: string | null;
   filial_id: string | null;
   veiculo_id: string | null;
   status: "new" | "viewed" | "processing" | "shipped" | "delivered" | "approved" | "rejected";
