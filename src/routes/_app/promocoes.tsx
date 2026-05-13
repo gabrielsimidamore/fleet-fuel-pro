@@ -25,9 +25,13 @@ function PromocoesPage() {
           {promocoes.map((p) => (
             <Card key={p.id}>
               <CardContent className="p-4 space-y-3">
-                <div className="aspect-video rounded-md bg-gradient-to-br from-muted to-accent flex items-center justify-center text-muted-foreground text-xs relative">
-                  <span className="absolute top-2 left-2 text-[10px] font-bold bg-destructive text-destructive-foreground px-2 py-0.5 rounded">PROMOÇÃO</span>
-                  {p.pecas?.category ?? "Peça"}
+                <div className="aspect-video rounded-md overflow-hidden bg-muted flex items-center justify-center relative">
+                  <span className="absolute top-2 left-2 z-10 text-[10px] font-bold bg-destructive text-destructive-foreground px-2 py-0.5 rounded">PROMOÇÃO</span>
+                  {p.pecas?.image_url ? (
+                    <img src={p.pecas.image_url} alt={p.title} className="w-full h-full object-cover" />
+                  ) : (
+                    <span className="text-muted-foreground text-xs">{p.pecas?.category ?? "Peça"}</span>
+                  )}
                 </div>
                 <div className="font-medium">{p.title}</div>
                 <div className="flex items-baseline gap-2">

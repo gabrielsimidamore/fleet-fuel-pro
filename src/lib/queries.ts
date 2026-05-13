@@ -67,7 +67,7 @@ export interface DBPromocao {
   valid_until: string | null;
   is_active: boolean;
   created_at: string;
-  pecas?: { name: string; category: string | null } | null;
+  pecas?: { name: string; category: string | null; image_url: string | null } | null;
 }
 
 export interface DBCotacao {
@@ -190,7 +190,7 @@ export async function fetchPecas(): Promise<DBPeca[]> {
 export async function fetchPromocoes(): Promise<DBPromocao[]> {
   const { data, error } = await supabase
     .from("promocoes")
-    .select("*, pecas(name, category)")
+    .select("*, pecas(name, category, image_url)")
     .eq("is_active", true)
     .order("created_at", { ascending: false });
   if (error) throw error;
@@ -397,7 +397,7 @@ export async function updatePromocaoActive(id: string, is_active: boolean) {
 export async function fetchAllPromocoes(): Promise<DBPromocao[]> {
   const { data, error } = await supabase
     .from("promocoes")
-    .select("*, pecas(name, category)")
+    .select("*, pecas(name, category, image_url)")
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
