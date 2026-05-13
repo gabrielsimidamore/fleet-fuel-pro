@@ -165,11 +165,11 @@ function DashboardPage() {
               <CardHeader>
                 <CardTitle className="text-base">Próximas manutenções</CardTitle>
               </CardHeader>
-              <CardContent className="px-0">
+              <CardContent className="px-0 overflow-x-auto">
                 {proximas.length === 0 ? (
                   <p className="px-6 py-4 text-sm text-muted-foreground">Nenhuma manutenção agendada.</p>
                 ) : (
-                  <table className="w-full text-sm">
+                  <table className="w-full text-sm min-w-[400px]">
                     <thead className="text-xs text-muted-foreground">
                       <tr className="border-b border-border">
                         <th className="text-left px-6 py-2 font-medium">Veículo</th>

@@ -174,14 +174,20 @@ function ManutencoesPage() {
               <Plus className="h-4 w-4 mr-1" /> Adicionar peça
             </Button>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-3">
             {pecas.map((p, i) => (
-              <div key={i} className="grid grid-cols-12 gap-2 items-end">
-                <div className="col-span-2">
-                  <Label className="text-xs">Categoria</Label>
-                  <Input value={p.cat} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cat: e.target.value } : x))} />
+              <div key={i} className="border border-border rounded-lg p-3 space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label className="text-xs">Categoria</Label>
+                    <Input value={p.cat} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cat: e.target.value } : x))} />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">Código</Label>
+                    <Input value={p.cod} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cod: e.target.value } : x))} />
+                  </div>
                 </div>
-                <div className="col-span-4">
+                <div className="space-y-1">
                   <Label className="text-xs">Nome</Label>
                   <Input
                     value={p.nome}
@@ -192,20 +198,20 @@ function ManutencoesPage() {
                     {catalogo.map((c) => <option key={c.id} value={c.name} />)}
                   </datalist>
                 </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Código</Label>
-                  <Input value={p.cod} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, cod: e.target.value } : x))} />
-                </div>
-                <div className="col-span-1">
-                  <Label className="text-xs">Qtd</Label>
-                  <Input type="number" value={p.qtd} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, qtd: Number(e.target.value) } : x))} />
-                </div>
-                <div className="col-span-2">
-                  <Label className="text-xs">Preço un.</Label>
-                  <Input type="number" step="0.01" value={p.preco} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, preco: Number(e.target.value) } : x))} />
-                </div>
-                <div className="col-span-1">
-                  <Button type="button" variant="ghost" size="icon" onClick={() => setPecas(pecas.filter((_, j) => j !== i))}>
+                <div className="flex items-end gap-2">
+                  <div className="space-y-1 w-20">
+                    <Label className="text-xs">Qtd</Label>
+                    <Input type="number" value={p.qtd} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, qtd: Number(e.target.value) } : x))} />
+                  </div>
+                  <div className="space-y-1 flex-1">
+                    <Label className="text-xs">Preço unitário (R$)</Label>
+                    <Input type="number" step="0.01" value={p.preco} onChange={(e) => setPecas(pecas.map((x, j) => j === i ? { ...x, preco: Number(e.target.value) } : x))} />
+                  </div>
+                  <div className="space-y-1 w-24">
+                    <Label className="text-xs">Total</Label>
+                    <Input readOnly value={(p.qtd * p.preco).toFixed(2)} className="bg-muted/40 text-right" />
+                  </div>
+                  <Button type="button" variant="ghost" size="icon" className="shrink-0 mb-0.5" onClick={() => setPecas(pecas.filter((_, j) => j !== i))}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>
                 </div>
