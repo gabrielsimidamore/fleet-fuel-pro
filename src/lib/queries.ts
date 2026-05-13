@@ -34,6 +34,9 @@ export interface DBManutencao {
   next_maintenance_date: string | null;
   next_maintenance_km: number | null;
   next_maintenance_type: string | null;
+  status: string | null;
+  photos: string[] | null;
+  scheduled_date: string | null;
   created_at: string;
 }
 
