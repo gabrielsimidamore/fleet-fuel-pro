@@ -407,7 +407,16 @@ export async function uploadPecaFoto(file: File, pecaId: string): Promise<string
   const { error } = await supabase.storage.from("pecas-fotos").upload(path, file, { upsert: true });
   if (error) throw error;
   const { data } = supabase.storage.from("pecas-fotos").getPublicUrl(path);
-  return data.publicUrl;
+  const url = data.publicUrl;
+  // Registrar na tabela fotos
+  try {
+    await supabase.from("fotos").upsert({
+      bucket: "pecas-fotos", storage_path: path, public_url: url,
+      referencia: "peca", referencia_id: pecaId,
+      nome_arquivo: file.name, tamanho_bytes: file.size, mime_type: file.type,
+    }, { onConflict: "storage_path" });
+  } catch { /* não bloquear upload se registro falhar */ }
+  return url;
 }
 
 export async function updatePeca(id: string, payload: Partial<DBPeca & { image_url?: string }>) {
@@ -442,7 +451,16 @@ export async function uploadManutencaoFoto(file: File, manutencaoId: string, ind
   const { error } = await supabase.storage.from("manutencao-fotos").upload(path, file, { upsert: true });
   if (error) throw error;
   const { data } = supabase.storage.from("manutencao-fotos").getPublicUrl(path);
-  return data.publicUrl;
+  const url = data.publicUrl;
+  // Registrar na tabela fotos
+  try {
+    await supabase.from("fotos").insert({
+      bucket: "manutencao-fotos", storage_path: path, public_url: url,
+      referencia: "manutencao", referencia_id: manutencaoId,
+      nome_arquivo: file.name, tamanho_bytes: file.size, mime_type: file.type,
+    });
+  } catch { /* não bloquear upload se registro falhar */ }
+  return url;
 }
 
 // ─── Pedidos sugeridos ────────────────────────────────────────────────────────
@@ -479,4 +497,55 @@ export async function fetchPedidosDetalhados(): Promise<(DBPedido & { manutencoe
     .order("created_at", { ascending: false });
   if (error) throw error;
   return data ?? [];
+}
+
+// ─── Tabela fotos (registro de uploads) ──────────────────────────────────────
+
+export interface DBFoto {
+  id: string;
+  bucket: string;
+  storage_path: string;
+  public_url: string;
+  referencia: string;
+  referencia_id: string;
+  nome_arquivo: string | null;
+  tamanho_bytes: number | null;
+  mime_type: string | null;
+  uploaded_by: string | null;
+  created_at: string;
+}
+
+export async function registrarFoto(payload: {
+  bucket: string;
+  storage_path: string;
+  public_url: string;
+  referencia: "peca" | "manutencao";
+  referencia_id: string;
+  nome_arquivo?: string;
+  tamanho_bytes?: number;
+  mime_type?: string;
+}): Promise<DBFoto> {
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data, error } = await supabase.from("fotos").insert({
+    ...payload,
+    uploaded_by: user?.id ?? null,
+  }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchFotosByReferencia(referencia_id: string): Promise<DBFoto[]> {
+  const { data, error } = await supabase
+    .from("fotos")
+    .select("*")
+    .eq("referencia_id", referencia_id)
+    .order("created_at");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function deletarFoto(id: string, storage_path: string, bucket: string) {
+  await supabase.storage.from(bucket).remove([storage_path]);
+  const { error } = await supabase.from("fotos").delete().eq("id", id);
+  if (error) throw error;
 }
