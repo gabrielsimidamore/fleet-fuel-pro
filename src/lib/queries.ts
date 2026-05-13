@@ -52,6 +52,7 @@ export interface DBPeca {
   interval_months: number | null;
   min_quantity: number;
   is_active: boolean;
+  image_url: string | null;
   created_at: string;
 }
 
@@ -422,7 +423,7 @@ export async function uploadPecaFoto(file: File, pecaId: string): Promise<string
   return url;
 }
 
-export async function updatePeca(id: string, payload: Partial<DBPeca & { image_url?: string }>) {
+export async function updatePeca(id: string, payload: Partial<DBPeca>) {
   const { error } = await supabase.from("pecas").update(payload).eq("id", id);
   if (error) throw error;
 }

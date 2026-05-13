@@ -32,11 +32,11 @@ function CatalogoPage() {
   const qc = useQueryClient();
 
   // Detail sheet
-  const [detail, setDetail] = useState<(DBPeca & { image_url?: string }) | null>(null);
+  const [detail, setDetail] = useState<DBPeca | null>(null);
 
   // Edit / Create dialog
   const [editOpen, setEditOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<(DBPeca & { image_url?: string }) | null>(null);
+  const [editTarget, setEditTarget] = useState<DBPeca | null>(null);
   const [form, setForm] = useState({ code: "", name: "", description: "", category: "", price: "", interval_km: "", interval_months: "" });
   const [uploading, setUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -45,7 +45,7 @@ function CatalogoPage() {
 
   const setF = (k: string, v: string) => setForm(f => ({ ...f, [k]: v }));
 
-  const openEdit = (p?: DBPeca & { image_url?: string }) => {
+  const openEdit = (p?: DBPeca) => {
     setEditTarget(p ?? null);
     setForm({
       code: p?.code ?? "", name: p?.name ?? "", description: p?.description ?? "",
@@ -148,7 +148,7 @@ function CatalogoPage() {
                 </thead>
                 <tbody>
                   {pecas.map((p) => {
-                    const pp = p as DBPeca & { image_url?: string };
+                    const pp = p;
                     return (
                       <tr key={p.id} className="border-t border-border hover:bg-muted/30">
                         <td className="px-4 py-2">
