@@ -128,3 +128,11 @@ export function usePedidosDetalhados() {
     staleTime: 30_000,
   });
 }
+
+export function usePedidosAdmin() {
+  return useQuery({
+    queryKey: ["pedidosAdmin"],
+    queryFn: () => import("@/lib/queries").then(m => m.fetchPedidosAdmin()),
+    staleTime: 20_000,
+  });
+}

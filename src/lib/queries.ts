@@ -88,7 +88,7 @@ export interface DBPedido {
   cotacao_id: string | null;
   filial_id: string | null;
   veiculo_id: string | null;
-  status: "new" | "viewed" | "processing" | "shipped" | "delivered";
+  status: "new" | "viewed" | "processing" | "shipped" | "delivered" | "approved" | "rejected";
   total: number | null;
   items: unknown[];
   notes: string | null;
@@ -551,5 +551,51 @@ export async function fetchFotosByReferencia(referencia_id: string): Promise<DBF
 export async function deletarFoto(id: string, storage_path: string, bucket: string) {
   await supabase.storage.from(bucket).remove([storage_path]);
   const { error } = await supabase.from("fotos").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Admin Pedidos ────────────────────────────────────────────────────────────
+
+export interface DBPedidoAdmin extends DBPedido {
+  veiculos?: {
+    frota_number: string; plate: string; model: string;
+    current_km: number | null; filial_id: string | null;
+  } | null;
+  manutencoes?: {
+    type: string; date: string;
+    km_at_maintenance: number | null;
+    items_replaced: string[] | null;
+    next_maintenance_km: number | null;
+  } | null;
+  filiais?: { name: string; city: string | null } | null;
+}
+
+export async function fetchPedidosAdmin(): Promise<DBPedidoAdmin[]> {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select(`
+      *,
+      veiculos(frota_number, plate, model, current_km, filial_id),
+      manutencoes(type, date, km_at_maintenance, items_replaced, next_maintenance_km)
+    `)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function updatePedidoStatus(
+  id: string,
+  status: "new" | "viewed" | "processing" | "shipped" | "delivered" | "approved" | "rejected"
+) {
+  const { error } = await supabase.from("pedidos").update({ status }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function updatePedidoItems(
+  id: string,
+  items: unknown[],
+  total: number
+) {
+  const { error } = await supabase.from("pedidos").update({ items, total }).eq("id", id);
   if (error) throw error;
 }
