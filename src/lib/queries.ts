@@ -361,3 +361,122 @@ export async function fetchPecasCategoria(): Promise<{ name: string; value: numb
     fill: fills[i % fills.length],
   }));
 }
+
+// ─── Promoções CRUD ───────────────────────────────────────────────────────────
+
+export async function insertPromocao(payload: {
+  peca_id?: string;
+  title: string;
+  description?: string;
+  original_price?: number;
+  promo_price: number;
+  discount_percent?: number;
+  valid_until?: string;
+}) {
+  const disc = payload.original_price && payload.promo_price
+    ? Math.round((1 - payload.promo_price / payload.original_price) * 100)
+    : payload.discount_percent;
+  const { data, error } = await supabase
+    .from("promocoes")
+    .insert({ ...payload, discount_percent: disc, is_active: true })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function updatePromocaoActive(id: string, is_active: boolean) {
+  const { error } = await supabase.from("promocoes").update({ is_active }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function fetchAllPromocoes(): Promise<DBPromocao[]> {
+  const { data, error } = await supabase
+    .from("promocoes")
+    .select("*, pecas(name, category)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+// ─── Catálogo com fotos ───────────────────────────────────────────────────────
+
+export async function uploadPecaFoto(file: File, pecaId: string): Promise<string> {
+  const ext = file.name.split(".").pop();
+  const path = `${pecaId}.${ext}`;
+  const { error } = await supabase.storage.from("pecas-fotos").upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("pecas-fotos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+export async function updatePeca(id: string, payload: Partial<DBPeca & { image_url?: string }>) {
+  const { error } = await supabase.from("pecas").update(payload).eq("id", id);
+  if (error) throw error;
+}
+
+export async function insertPeca(payload: {
+  code?: string; name: string; description?: string;
+  category?: string; price?: number; interval_km?: number;
+  interval_months?: number; image_url?: string;
+}) {
+  const { data, error } = await supabase.from("pecas").insert({ ...payload, is_active: true }).select().single();
+  if (error) throw error;
+  return data;
+}
+
+// ─── Manutenções com fotos e agendamento ─────────────────────────────────────
+
+export async function fetchManutencoesDetalhadas(): Promise<(DBManutencao & { veiculos?: { frota_number: string; plate: string; model: string } | null })[]> {
+  const { data, error } = await supabase
+    .from("manutencoes")
+    .select("*, veiculos(frota_number, plate, model)")
+    .order("date", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function uploadManutencaoFoto(file: File, manutencaoId: string, index: number): Promise<string> {
+  const ext = file.name.split(".").pop();
+  const path = `${manutencaoId}-${index}.${ext}`;
+  const { error } = await supabase.storage.from("manutencao-fotos").upload(path, file, { upsert: true });
+  if (error) throw error;
+  const { data } = supabase.storage.from("manutencao-fotos").getPublicUrl(path);
+  return data.publicUrl;
+}
+
+// ─── Pedidos sugeridos ────────────────────────────────────────────────────────
+
+export async function insertPedidoSugerido(payload: {
+  manutencao_id: string;
+  veiculo_id: string;
+  filial_id?: string;
+  items: { nome: string; cod: string; qtd: number; preco: number }[];
+  total: number;
+  notes?: string;
+}) {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .insert({
+      manutencao_id: payload.manutencao_id,
+      veiculo_id: payload.veiculo_id,
+      filial_id: payload.filial_id,
+      status: "new",
+      items: payload.items,
+      total: payload.total,
+      notes: payload.notes ?? "Pedido gerado automaticamente pela manutenção",
+    })
+    .select()
+    .single();
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchPedidosDetalhados(): Promise<(DBPedido & { manutencoes?: { type: string; date: string } | null })[]> {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("*, veiculos(frota_number, plate), manutencoes(type, date)")
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}

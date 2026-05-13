@@ -104,3 +104,27 @@ export function useManutencoes() {
     staleTime: 30_000,
   });
 }
+
+export function useManutencoesList() {
+  return useQuery({
+    queryKey: fleetKeys.manutencoes,
+    queryFn: () => import("@/lib/queries").then(m => m.fetchManutencoesDetalhadas()),
+    staleTime: 30_000,
+  });
+}
+
+export function useAllPromocoes() {
+  return useQuery({
+    queryKey: ["allPromocoes"],
+    queryFn: () => import("@/lib/queries").then(m => m.fetchAllPromocoes()),
+    staleTime: 30_000,
+  });
+}
+
+export function usePedidosDetalhados() {
+  return useQuery({
+    queryKey: ["pedidosDetalhados"],
+    queryFn: () => import("@/lib/queries").then(m => m.fetchPedidosDetalhados()),
+    staleTime: 30_000,
+  });
+}

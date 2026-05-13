@@ -1,0 +1,1 @@
+import{u as s,j as n,N as o}from"./index-B8lVVoz_.js";function i(){const{loading:r,user:t,role:a}=s();return r?null:t?n.jsx(o,{to:a==="admin"?"/admin/dashboard":"/dashboard"}):n.jsx(o,{to:"/login"})}export{i as component};
