@@ -625,3 +625,172 @@ export async function sendPedidoAprovadoEmail(payload: {
   });
   if (error) throw error;
 }
+
+// ─── Intervalos de Manutenção ─────────────────────────────────────────────────
+
+export interface DBIntervalo {
+  id: string;
+  nome: string;
+  descricao: string | null;
+  tipo: "revisao_geral" | "peca" | "veiculo_especifico";
+  peca_id: string | null;
+  veiculo_id: string | null;
+  intervalo_km: number | null;
+  intervalo_meses: number | null;
+  dias_antecedencia: number;
+  ativo: boolean;
+  created_at: string;
+  pecas?: { name: string; code: string | null } | null;
+  veiculos?: { frota_number: string; plate: string } | null;
+}
+
+export async function fetchIntervalos(): Promise<DBIntervalo[]> {
+  const { data, error } = await supabase
+    .from("intervalos_manutencao")
+    .select("*, pecas(name, code), veiculos(frota_number, plate)")
+    .order("tipo").order("nome");
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function upsertIntervalo(payload: Partial<DBIntervalo> & { nome: string; tipo: string }) {
+  const { id, pecas, veiculos, ...rest } = payload as DBIntervalo & { pecas?: unknown; veiculos?: unknown };
+  if (id) {
+    const { error } = await supabase.from("intervalos_manutencao").update({ ...rest, updated_at: new Date().toISOString() }).eq("id", id);
+    if (error) throw error;
+  } else {
+    const { error } = await supabase.from("intervalos_manutencao").insert(rest);
+    if (error) throw error;
+  }
+}
+
+export async function deleteIntervalo(id: string) {
+  const { error } = await supabase.from("intervalos_manutencao").delete().eq("id", id);
+  if (error) throw error;
+}
+
+// ─── Motor de pedidos inteligentes ───────────────────────────────────────────
+/**
+ * Lógica:
+ * 1. Para cada veículo, busca o último serviço de cada tipo (km + data)
+ * 2. Para cada intervalo ativo, verifica se está dentro da janela (dias_antecedencia)
+ * 3. Janela KM:  current_km + km_semana >= last_km + intervalo_km
+ * 4. Janela DATA: hoje + dias_antecedencia >= last_date + intervalo_meses meses
+ * 5. Se já gerou pedido hoje para esse par (veiculo+intervalo), pula
+ */
+export async function gerarPedidosInteligentes(): Promise<number> {
+  // 1. Todos os veículos
+  const { data: veiculos } = await supabase
+    .from("veiculos")
+    .select("id, frota_number, plate, model, current_km, filial_id");
+  if (!veiculos?.length) return 0;
+
+  // 2. Todos os intervalos ativos
+  const { data: intervalos } = await supabase
+    .from("intervalos_manutencao")
+    .select("*")
+    .eq("ativo", true);
+  if (!intervalos?.length) return 0;
+
+  // 3. Última manutenção de cada tipo por veículo
+  const { data: manutencoes } = await supabase
+    .from("manutencoes")
+    .select("veiculo_id, type, date, km_at_maintenance")
+    .eq("status", "concluida")
+    .order("date", { ascending: false });
+
+  // Indexar: { veiculo_id: { type: { date, km } } }
+  const lastService: Record<string, Record<string, { date: string; km: number | null }>> = {};
+  (manutencoes ?? []).forEach(m => {
+    if (!lastService[m.veiculo_id]) lastService[m.veiculo_id] = {};
+    if (!lastService[m.veiculo_id][m.type]) {
+      lastService[m.veiculo_id][m.type] = { date: m.date, km: m.km_at_maintenance };
+    }
+  });
+
+  // 4. Pedidos já gerados hoje
+  const today = new Date().toISOString().slice(0, 10);
+  const { data: logHoje } = await supabase
+    .from("pedidos_gerados_log")
+    .select("veiculo_id, intervalo_id")
+    .eq("data_geracao", today);
+  const logSet = new Set((logHoje ?? []).map(l => `${l.veiculo_id}::${l.intervalo_id}`));
+
+  // 5. Verificar cada combinação
+  let gerados = 0;
+  const KM_SEMANA_ESTIMADO = 500; // km estimado por semana como padrão
+
+  for (const v of veiculos) {
+    for (const intervalo of intervalos) {
+      // Se é específico para outro veículo, pula
+      if (intervalo.veiculo_id && intervalo.veiculo_id !== v.id) continue;
+      // Já gerou hoje?
+      if (logSet.has(`${v.id}::${intervalo.id}`)) continue;
+
+      const last = lastService[v.id]?.[intervalo.nome];
+      const kmAtual = v.current_km ?? 0;
+      let deveGerar = false;
+
+      // Verificar por KM
+      if (intervalo.intervalo_km) {
+        const lastKm = last?.km ?? 0;
+        const kmRestante = (lastKm + intervalo.intervalo_km) - kmAtual;
+        const diasAnte = intervalo.dias_antecedencia;
+        const kmThreshold = KM_SEMANA_ESTIMADO * (diasAnte / 7);
+        if (kmRestante <= kmThreshold && kmRestante > 0) deveGerar = true;
+        if (kmRestante <= 0) deveGerar = true; // já passou
+      }
+
+      // Verificar por meses
+      if (intervalo.intervalo_meses && !deveGerar) {
+        const lastDate = last?.date ? new Date(last.date) : new Date(0);
+        const proximaData = new Date(lastDate);
+        proximaData.setMonth(proximaData.getMonth() + intervalo.intervalo_meses);
+        const diasParaProximo = (proximaData.getTime() - Date.now()) / 86400000;
+        if (diasParaProximo <= intervalo.dias_antecedencia) deveGerar = true;
+      }
+
+      if (!deveGerar) continue;
+
+      // Buscar peças relacionadas do catálogo
+      let itemsPedido: { nome: string; cod: string; qtd: number; preco: number; cat: string }[] = [];
+      if (intervalo.peca_id) {
+        const { data: peca } = await supabase.from("pecas").select("*").eq("id", intervalo.peca_id).single();
+        if (peca) itemsPedido = [{ nome: peca.name, cod: peca.code ?? "", qtd: 1, preco: peca.price ?? 0, cat: peca.category ?? "" }];
+      } else {
+        // Buscar peças pelo nome da revisão no catálogo
+        const keywords = intervalo.nome.toLowerCase().split(" ").filter((w: string) => w.length > 3);
+        const { data: pecas } = await supabase.from("pecas").select("*").eq("is_active", true);
+        itemsPedido = (pecas ?? [])
+          .filter(p => keywords.some((k: string) => p.name.toLowerCase().includes(k) || (p.category ?? "").toLowerCase().includes(k)))
+          .slice(0, 5)
+          .map(p => ({ nome: p.name, cod: p.code ?? "", qtd: 1, preco: p.price ?? 0, cat: p.category ?? "" }));
+      }
+
+      const total = itemsPedido.reduce((s, i) => s + i.preco, 0);
+
+      // Criar o pedido
+      const { data: novoPedido } = await supabase.from("pedidos").insert({
+        veiculo_id: v.id,
+        filial_id: v.filial_id,
+        status: "new",
+        items: itemsPedido,
+        total,
+        notes: `🤖 Gerado automaticamente: ${intervalo.nome} — ${v.frota_number} (${v.plate})\n${intervalo.descricao ?? ""}`,
+      }).select().single();
+
+      // Registrar no log
+      if (novoPedido) {
+        await supabase.from("pedidos_gerados_log").insert({
+          veiculo_id: v.id,
+          intervalo_id: intervalo.id,
+          pedido_id: novoPedido.id,
+          data_geracao: today,
+        });
+        gerados++;
+      }
+    }
+  }
+
+  return gerados;
+}

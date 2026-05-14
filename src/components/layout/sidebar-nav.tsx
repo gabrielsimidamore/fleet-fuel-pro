@@ -17,6 +17,7 @@ import {
   UserCog,
   ChevronDown,
   X,
+  Clock,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
@@ -56,6 +57,7 @@ const adminItems = [
   { to: "/admin/clientes", label: "Clientes", icon: Users },
   { to: "/admin/pedidos", label: "Pedidos", icon: Package },
   { to: "/admin/catalogo", label: "Catálogo", icon: BookOpen },
+  { to: "/admin/intervalos", label: "Intervalos", icon: Clock },
   { to: "/admin/promocoes", label: "Promoções", icon: Tag },
   { to: "/admin/relatorios", label: "Relatórios", icon: BarChart3 },
 ];

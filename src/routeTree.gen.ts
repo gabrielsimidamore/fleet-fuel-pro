@@ -23,6 +23,7 @@ import { Route as AppCalendarioRouteImport } from './routes/_app/calendario'
 import { Route as AppAdminRelatoriosRouteImport } from './routes/_app/admin/relatorios'
 import { Route as AppAdminPromocoesRouteImport } from './routes/_app/admin/promocoes'
 import { Route as AppAdminPedidosRouteImport } from './routes/_app/admin/pedidos'
+import { Route as AppAdminIntervalosRouteImport } from './routes/_app/admin/intervalos'
 import { Route as AppAdminDashboardRouteImport } from './routes/_app/admin/dashboard'
 import { Route as AppAdminClientesRouteImport } from './routes/_app/admin/clientes'
 import { Route as AppAdminCatalogoRouteImport } from './routes/_app/admin/catalogo'
@@ -96,6 +97,11 @@ const AppAdminPedidosRoute = AppAdminPedidosRouteImport.update({
   path: '/admin/pedidos',
   getParentRoute: () => AppRoute,
 } as any)
+const AppAdminIntervalosRoute = AppAdminIntervalosRouteImport.update({
+  id: '/admin/intervalos',
+  path: '/admin/intervalos',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminDashboardRoute = AppAdminDashboardRouteImport.update({
   id: '/admin/dashboard',
   path: '/admin/dashboard',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/admin/catalogo': typeof AppAdminCatalogoRoute
   '/admin/clientes': typeof AppAdminClientesRoute
   '/admin/dashboard': typeof AppAdminDashboardRoute
+  '/admin/intervalos': typeof AppAdminIntervalosRoute
   '/admin/pedidos': typeof AppAdminPedidosRoute
   '/admin/promocoes': typeof AppAdminPromocoesRoute
   '/admin/relatorios': typeof AppAdminRelatoriosRoute
@@ -144,6 +151,7 @@ export interface FileRoutesByTo {
   '/admin/catalogo': typeof AppAdminCatalogoRoute
   '/admin/clientes': typeof AppAdminClientesRoute
   '/admin/dashboard': typeof AppAdminDashboardRoute
+  '/admin/intervalos': typeof AppAdminIntervalosRoute
   '/admin/pedidos': typeof AppAdminPedidosRoute
   '/admin/promocoes': typeof AppAdminPromocoesRoute
   '/admin/relatorios': typeof AppAdminRelatoriosRoute
@@ -164,6 +172,7 @@ export interface FileRoutesById {
   '/_app/admin/catalogo': typeof AppAdminCatalogoRoute
   '/_app/admin/clientes': typeof AppAdminClientesRoute
   '/_app/admin/dashboard': typeof AppAdminDashboardRoute
+  '/_app/admin/intervalos': typeof AppAdminIntervalosRoute
   '/_app/admin/pedidos': typeof AppAdminPedidosRoute
   '/_app/admin/promocoes': typeof AppAdminPromocoesRoute
   '/_app/admin/relatorios': typeof AppAdminRelatoriosRoute
@@ -184,6 +193,7 @@ export interface FileRouteTypes {
     | '/admin/catalogo'
     | '/admin/clientes'
     | '/admin/dashboard'
+    | '/admin/intervalos'
     | '/admin/pedidos'
     | '/admin/promocoes'
     | '/admin/relatorios'
@@ -202,6 +212,7 @@ export interface FileRouteTypes {
     | '/admin/catalogo'
     | '/admin/clientes'
     | '/admin/dashboard'
+    | '/admin/intervalos'
     | '/admin/pedidos'
     | '/admin/promocoes'
     | '/admin/relatorios'
@@ -221,6 +232,7 @@ export interface FileRouteTypes {
     | '/_app/admin/catalogo'
     | '/_app/admin/clientes'
     | '/_app/admin/dashboard'
+    | '/_app/admin/intervalos'
     | '/_app/admin/pedidos'
     | '/_app/admin/promocoes'
     | '/_app/admin/relatorios'
@@ -332,6 +344,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAdminPedidosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/admin/intervalos': {
+      id: '/_app/admin/intervalos'
+      path: '/admin/intervalos'
+      fullPath: '/admin/intervalos'
+      preLoaderRoute: typeof AppAdminIntervalosRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/dashboard': {
       id: '/_app/admin/dashboard'
       path: '/admin/dashboard'
@@ -368,6 +387,7 @@ interface AppRouteChildren {
   AppAdminCatalogoRoute: typeof AppAdminCatalogoRoute
   AppAdminClientesRoute: typeof AppAdminClientesRoute
   AppAdminDashboardRoute: typeof AppAdminDashboardRoute
+  AppAdminIntervalosRoute: typeof AppAdminIntervalosRoute
   AppAdminPedidosRoute: typeof AppAdminPedidosRoute
   AppAdminPromocoesRoute: typeof AppAdminPromocoesRoute
   AppAdminRelatoriosRoute: typeof AppAdminRelatoriosRoute
@@ -385,6 +405,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppAdminCatalogoRoute: AppAdminCatalogoRoute,
   AppAdminClientesRoute: AppAdminClientesRoute,
   AppAdminDashboardRoute: AppAdminDashboardRoute,
+  AppAdminIntervalosRoute: AppAdminIntervalosRoute,
   AppAdminPedidosRoute: AppAdminPedidosRoute,
   AppAdminPromocoesRoute: AppAdminPromocoesRoute,
   AppAdminRelatoriosRoute: AppAdminRelatoriosRoute,

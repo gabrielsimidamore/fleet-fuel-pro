@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect } from "react";
 import {
   Truck,
   CheckCircle2,
@@ -63,6 +64,15 @@ function DashboardPage() {
   const { data: kmMedio = [] } = useKmMedio();
   const { data: promocoes = [] } = usePromocoes();
   const { data: cotacoes = [] } = useCotacoes();
+
+  // Rodar motor de pedidos inteligentes ao abrir o dashboard
+  useEffect(() => {
+    import("@/lib/queries").then(({ gerarPedidosInteligentes }) => {
+      gerarPedidosInteligentes().then(n => {
+        if (n > 0) console.log(`[FleetControl] ${n} pedido(s) gerado(s) automaticamente.`);
+      }).catch(console.error);
+    });
+  }, []);
 
   const total = veiculos.length;
   const emDia = veiculos.filter((v) => v.statusDisplay === "em_dia").length;
