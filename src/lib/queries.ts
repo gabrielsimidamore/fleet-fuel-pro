@@ -259,6 +259,10 @@ export async function insertManutencao(payload: {
   next_maintenance_date?: string;
   next_maintenance_km?: number;
   next_maintenance_type?: string;
+  status?: string;
+  photos?: string[];
+  scheduled_date?: string;
+  checklist_result?: unknown;
 }) {
   const { data, error } = await supabase
     .from("manutencoes")
