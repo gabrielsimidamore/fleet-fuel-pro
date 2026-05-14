@@ -794,3 +794,67 @@ export async function gerarPedidosInteligentes(): Promise<number> {
 
   return gerados;
 }
+
+// ─── Atualizar KM do veículo ──────────────────────────────────────────────────
+export async function updateVeiculoKm(veiculo_id: string, km: number) {
+  const { error } = await supabase.from("veiculos").update({ current_km: km }).eq("id", veiculo_id).lt("current_km", km);
+  if (error) throw error;
+}
+
+// ─── Relatórios reais ─────────────────────────────────────────────────────────
+export async function fetchRelatorioGastos(): Promise<{ filial: string; total: number; count: number }[]> {
+  const { data, error } = await supabase
+    .from("manutencoes").select("filial_id, cost, veiculos(filial_id, filiais(name))")
+    .not("cost", "is", null);
+  if (error) throw error;
+  const map: Record<string, { filial: string; total: number; count: number }> = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (data ?? []).forEach((m: any) => {
+    const nome = m.veiculos?.filiais?.name ?? "Sem filial";
+    if (!map[nome]) map[nome] = { filial: nome, total: 0, count: 0 };
+    map[nome].total += Number(m.cost ?? 0);
+    map[nome].count += 1;
+  });
+  return Object.values(map).sort((a, b) => b.total - a.total);
+}
+
+export async function fetchRelatorioPecas(): Promise<{ peca: string; qtd: number }[]> {
+  const { data, error } = await supabase.from("manutencoes").select("items_replaced").not("items_replaced", "is", null);
+  if (error) throw error;
+  const map: Record<string, number> = {};
+  (data ?? []).forEach((m: { items_replaced: string[] }) => {
+    (m.items_replaced ?? []).forEach(p => { map[p] = (map[p] ?? 0) + 1; });
+  });
+  return Object.entries(map).map(([peca, qtd]) => ({ peca, qtd })).sort((a, b) => b.qtd - a.qtd).slice(0, 15);
+}
+
+export async function fetchRelatorioVeiculos(): Promise<{ frota: string; plate: string; model: string; total_gasto: number; total_manut: number; km: number }[]> {
+  const { data, error } = await supabase
+    .from("veiculos").select("frota_number, plate, model, current_km, manutencoes(cost)");
+  if (error) throw error;
+  return (data ?? []).map((v: { frota_number: string; plate: string; model: string; current_km: number; manutencoes: { cost: number | null }[] }) => ({
+    frota: v.frota_number, plate: v.plate, model: v.model, km: v.current_km,
+    total_manut: v.manutencoes.length,
+    total_gasto: v.manutencoes.reduce((s, m) => s + (m.cost ?? 0), 0),
+  })).sort((a, b) => b.total_gasto - a.total_gasto);
+}
+
+export async function fetchHistoricoVeiculo(veiculo_id: string) {
+  const { data, error } = await supabase
+    .from("manutencoes")
+    .select("*")
+    .eq("veiculo_id", veiculo_id)
+    .order("date", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}
+
+export async function fetchPedidosVeiculo(veiculo_id: string) {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select("*")
+    .eq("veiculo_id", veiculo_id)
+    .order("created_at", { ascending: false });
+  if (error) throw error;
+  return data ?? [];
+}

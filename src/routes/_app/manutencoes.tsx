@@ -72,6 +72,41 @@ function ChecklistTab() {
     setStatuses(p => ({ ...p, [id]: next }));
   };
 
+  const [sigOpen, setSigOpen] = useState(false);
+  const [sigData, setSigData] = useState<string | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const drawing = useRef(false);
+
+  const startDraw = (e: React.MouseEvent | React.TouchEvent) => {
+    drawing.current = true;
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = canvas.getContext("2d"); if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    ctx.beginPath(); ctx.moveTo(clientX - rect.left, clientY - rect.top);
+  };
+  const draw = (e: React.MouseEvent | React.TouchEvent) => {
+    if (!drawing.current) return;
+    const canvas = canvasRef.current; if (!canvas) return;
+    const ctx = canvas.getContext("2d"); if (!ctx) return;
+    const rect = canvas.getBoundingClientRect();
+    const clientX = "touches" in e ? e.touches[0].clientX : e.clientX;
+    const clientY = "touches" in e ? e.touches[0].clientY : e.clientY;
+    ctx.lineWidth = 2.5; ctx.lineCap = "round"; ctx.strokeStyle = "#1a1a2e";
+    ctx.lineTo(clientX - rect.left, clientY - rect.top); ctx.stroke();
+  };
+  const endDraw = () => { drawing.current = false; };
+  const clearSig = () => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
+    setSigData(null);
+  };
+  const confirmSig = () => {
+    const canvas = canvasRef.current; if (!canvas) return;
+    setSigData(canvas.toDataURL()); setSigOpen(false);
+  };
+
   const handleSave = async () => {
     if (!veiculoId) { toast.error("Selecione um veículo."); return; }
     setSaving(true);
@@ -274,6 +309,47 @@ function ChecklistTab() {
         </div>
       )}
 
+      {/* Assinatura digital */}
+      <div className="border-2 border-dashed border-border rounded-xl p-4 space-y-3">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-sm font-semibold">Assinatura do responsável</div>
+            <div className="text-xs text-muted-foreground">Assine para confirmar a inspeção</div>
+          </div>
+          {sigData ? (
+            <div className="flex items-center gap-2">
+              <img src={sigData} alt="assinatura" className="h-10 border rounded bg-white" />
+              <button onClick={() => setSigData(null)} className="text-xs text-destructive hover:underline">Refazer</button>
+            </div>
+          ) : (
+            <Button variant="outline" size="sm" onClick={() => setSigOpen(true)}>✍️ Assinar</Button>
+          )}
+        </div>
+      </div>
+
+      {/* Dialog de assinatura */}
+      {sigOpen && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 p-4">
+          <div className="bg-card rounded-xl shadow-2xl w-full max-w-sm space-y-4 p-5">
+            <div className="flex items-center justify-between">
+              <div className="font-semibold">Assine abaixo</div>
+              <button onClick={() => setSigOpen(false)} className="text-muted-foreground hover:text-foreground"><X className="h-5 w-5" /></button>
+            </div>
+            <canvas ref={canvasRef} width={320} height={140}
+              className="border-2 border-border rounded-lg w-full bg-white touch-none cursor-crosshair"
+              onMouseDown={startDraw} onMouseMove={draw} onMouseUp={endDraw} onMouseLeave={endDraw}
+              onTouchStart={e => { e.preventDefault(); startDraw(e); }}
+              onTouchMove={e => { e.preventDefault(); draw(e); }}
+              onTouchEnd={endDraw}
+            />
+            <div className="flex gap-2">
+              <Button variant="outline" className="flex-1" onClick={clearSig}>Limpar</Button>
+              <Button className="flex-1" onClick={confirmSig}>Confirmar</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Button onClick={handleSave} disabled={saving || !veiculoId} className="w-full h-12 text-base font-semibold">
         {saving ? "Salvando..." : `Finalizar Checklist${hasIssues ? " (gerar pedido de atenção)" : ""}`}
       </Button>
@@ -344,6 +420,12 @@ function ManutencaoForm({ isSchedule = false }: { isSchedule?: boolean }) {
         status: isSchedule ? "agendada" : "concluida",
         scheduled_date: isSchedule ? scheduledDate : undefined,
       } as Parameters<typeof insertManutencao>[0]);
+
+      // Atualizar KM do veículo se informado
+      if (kmAtual > 0) {
+        const { updateVeiculoKm } = await import("@/lib/queries");
+        await updateVeiculoKm(veiculoId, kmAtual).catch(() => {});
+      }
 
       if (photoFiles.length > 0 && !isSchedule) {
         const urls: string[] = [];

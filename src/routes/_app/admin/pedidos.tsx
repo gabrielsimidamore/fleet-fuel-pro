@@ -111,7 +111,12 @@ function PedidoSheet({
     <Sheet open={open} onOpenChange={v => { if (!v) onClose(); }}>
       <SheetContent
         className="w-full sm:max-w-2xl overflow-y-auto p-0 flex flex-col"
-        onOpenAutoFocus={() => initItems(pedido)}
+        onOpenAutoFocus={() => {
+          initItems(pedido);
+          if (pedido.status === "new") {
+            updatePedidoStatus(pedido.id, "viewed").then(() => qc.invalidateQueries({ queryKey: ["pedidosAdmin"] })).catch(() => {});
+          }
+        }}
       >
         {/* Header */}
         <SheetHeader className="px-5 py-4 border-b bg-muted/30 shrink-0">

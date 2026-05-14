@@ -1,45 +1,21 @@
 import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
-  Truck,
-  LayoutDashboard,
-  Wrench,
-  Calendar,
-  ClipboardCheck,
-  ShoppingCart,
-  Package,
-  Tag,
-  Users,
-  BookOpen,
-  BarChart3,
-  LogOut,
-  Bell,
-  Menu,
-  UserCog,
-  ChevronDown,
-  X,
-  Clock,
+  Truck, LayoutDashboard, Wrench, Calendar, ClipboardCheck,
+  ShoppingCart, Package, Tag, Users, BookOpen, BarChart3,
+  LogOut, Bell, Menu, UserCog, ChevronDown, X, Clock,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
+import { useNotifications } from "@/hooks/use-notifications";
 
 const clientItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -257,6 +233,57 @@ function NavLinks({
   );
 }
 
+// ─── Notification Bell ────────────────────────────────────────────────────────
+function NotificationBell({ role }: { role: string | null }) {
+  const { notifications, unread, markAllRead, markRead, clear } = useNotifications(role);
+  const typeIcon: Record<string, string> = { pedido_novo: "🛒", pedido_aprovado: "✅", pedido_rejeitado: "❌", manutencao_agendada: "🔧" };
+
+  return (
+    <Popover>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-4 w-4" />
+          {unread > 0 && (
+            <span className="absolute top-1 right-1 h-4 w-4 rounded-full bg-destructive text-[9px] text-white font-bold flex items-center justify-center">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent align="end" className="w-80 p-0">
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <span className="font-semibold text-sm">Notificações {unread > 0 && <span className="ml-1 text-xs text-muted-foreground">({unread} não lidas)</span>}</span>
+          <div className="flex gap-2">
+            {unread > 0 && <button onClick={markAllRead} className="text-xs text-primary hover:underline">Marcar todas</button>}
+            {notifications.length > 0 && <button onClick={clear} className="text-xs text-muted-foreground hover:underline">Limpar</button>}
+          </div>
+        </div>
+        <div className="max-h-72 overflow-y-auto divide-y divide-border">
+          {notifications.length === 0 && (
+            <div className="px-4 py-6 text-center text-sm text-muted-foreground">Nenhuma notificação</div>
+          )}
+          {notifications.map(n => (
+            <button key={n.id} onClick={() => markRead(n.id)}
+              className={`w-full text-left px-4 py-3 hover:bg-muted/40 transition-colors ${n.read ? "opacity-60" : ""}`}>
+              <div className="flex items-start gap-2">
+                <span className="text-base shrink-0">{typeIcon[n.type] ?? "🔔"}</span>
+                <div className="min-w-0 flex-1">
+                  <div className="text-xs font-semibold flex items-center gap-1.5">
+                    {n.title}
+                    {!n.read && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{n.body}</div>
+                  <div className="text-[10px] text-muted-foreground/60 mt-1">{new Date(n.created_at).toLocaleString("pt-BR")}</div>
+                </div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
+
 // ─── Main Layout ──────────────────────────────────────────────────────────
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
@@ -347,12 +374,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               {role === "admin" ? "Painel administrativo" : "Painel do cliente"}
             </span>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" className="relative">
-              <Bell className="h-4 w-4" />
-              <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-destructive" />
-            </Button>
-          </div>
+          <NotificationBell role={role} />
         </header>
 
         {/* Page Content */}
