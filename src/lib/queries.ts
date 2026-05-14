@@ -600,3 +600,24 @@ export async function updatePedidoItems(
   const { error } = await supabase.from("pedidos").update({ items, total }).eq("id", id);
   if (error) throw error;
 }
+
+// ─── Email ao aprovar pedido ───────────────────────────────────────────────────
+export async function sendPedidoAprovadoEmail(payload: {
+  pedido_id: string;
+  veiculo: string;
+  placa: string;
+  modelo: string;
+  tipo_manutencao?: string;
+  data_manutencao?: string;
+  items: unknown[];
+  total: number;
+}) {
+  const { error } = await supabase.functions.invoke("send-pedido-email", {
+    body: {
+      ...payload,
+      aprovado_por: (await supabase.auth.getUser()).data.user?.email ?? "cliente",
+      data_aprovacao: new Date().toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    },
+  });
+  if (error) throw error;
+}

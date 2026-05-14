@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { usePedidosDetalhados, useAllPromocoes, usePecas } from "@/hooks/use-fleet-data";
-import { updatePedidoStatus, updatePedidoItems } from "@/lib/queries";
+import { updatePedidoStatus, updatePedidoItems, sendPedidoAprovadoEmail } from "@/lib/queries";
 
 export const Route = createFileRoute("/_app/pedidos")({ component: PedidosPage });
 
@@ -66,6 +66,25 @@ function PedidoSheet({ pedido, open, onClose }: {
     try {
       await updatePedidoItems(pedido.id, items, total);
       await updatePedidoStatus(pedido.id, action);
+
+      // Enviar email ao aprovar
+      if (action === "approved") {
+        try {
+          await sendPedidoAprovadoEmail({
+            pedido_id: pedido.id,
+            veiculo: pExt.veiculos?.frota_number ?? "—",
+            placa: pExt.veiculos?.plate ?? "—",
+            modelo: pExt.veiculos?.model ?? "—",
+            tipo_manutencao: pExt.manutencoes?.type,
+            data_manutencao: pExt.manutencoes?.date ? new Date(pExt.manutencoes.date).toLocaleDateString("pt-BR") : undefined,
+            items,
+            total,
+          });
+        } catch (emailErr) {
+          console.error("Email error:", emailErr);
+          // Não bloqueia o fluxo se o email falhar
+        }
+      }
       await qc.invalidateQueries({ queryKey: ["pedidosDetalhados"] });
       toast.success(action === "approved" ? "Pedido aprovado! ✅" : "Pedido rejeitado.");
       onClose();
